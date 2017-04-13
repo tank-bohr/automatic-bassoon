@@ -12,7 +12,7 @@ import com.cloudhopper.smpp.type.SmppChannelConnectTimeoutException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-class Client(var client: SmppClient = DefaultSmppClient()) {
+class Client(val client: SmppClient = DefaultSmppClient(), val name: String = "basson") {
     private val config = buildSessionConfiguration()
     private val sessionHandler: SesssionHandler = SesssionHandler(this)
     private var session: SmppSession? = null
@@ -52,7 +52,7 @@ class Client(var client: SmppClient = DefaultSmppClient()) {
             to: String = "79261234567",
             payload: String = "Hello"
     ): PduResponse? {
-        var sm = SubmitSm()
+        val sm = SubmitSm()
         sm.sourceAddress = Address(SmppConstants.TON_ALPHANUMERIC, SmppConstants.NPI_UNKNOWN, from)
         sm.destAddress = Address(SmppConstants.TON_INTERNATIONAL, SmppConstants.NPI_E164, to)
         sm.dataCoding = SmppConstants.DATA_CODING_UCS2
@@ -62,7 +62,7 @@ class Client(var client: SmppClient = DefaultSmppClient()) {
     }
 
     fun respondUssd(deliverSm: DeliverSm, responseText: String = "OK") {
-        var submitSm = SubmitSm()
+        val submitSm = SubmitSm()
         submitSm.sourceAddress = deliverSm.destAddress
         submitSm.destAddress = deliverSm.sourceAddress
         submitSm.dataCoding = SmppConstants.DATA_CODING_DEFAULT
@@ -71,23 +71,14 @@ class Client(var client: SmppClient = DefaultSmppClient()) {
             submitSm.addOptionalParameter(pssrResponse)
         }
         logger.info("[fun respondUssd] Sending SubmitSm...")
-        val future = session?.sendRequestPdu(submitSm, 300_000, false)
-        future ?: return
-        val completedWithinTimeout = future.await()
-        if (!completedWithinTimeout) {
-            logger.info("[fun respondUssd] Failed to receive response within specified time")
-            future.cancel()
-        } else if (future.isSuccess) {
-            val pduResponse = future.response
-            logger.info("[fun respondUssd] Received response: [$pduResponse]")
-        } else {
-            logger.error("[fun respondUssd] Failed: [${future.cause}]")
-        }
+        val pduResponse = session?.submit(submitSm, 300_000)
+        logger.info("[fun respondUssd] Received response: [${pduResponse.toString()}]")
+        session?.sendResponsePdu(deliverSm.createResponse())
     }
 
     private fun buildSessionConfiguration(): SmppSessionConfiguration {
-        var sc = SmppSessionConfiguration()
-        sc.name = "basson"
+        val sc = SmppSessionConfiguration()
+        sc.name = name
         sc.type = SmppBindType.TRANSCEIVER
         sc.host = "localhost"
         sc.port = 2775
