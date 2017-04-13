@@ -61,7 +61,7 @@ class Client(var client: SmppClient = DefaultSmppClient()) {
         return session?.submit(sm, 300_000)
     }
 
-    fun respondUssd(deliverSm: DeliverSm, responseText: String = "OK"): PduResponse? {
+    fun respondUssd(deliverSm: DeliverSm, responseText: String = "OK") {
         var submitSm = SubmitSm()
         submitSm.sourceAddress = deliverSm.destAddress
         submitSm.destAddress = deliverSm.sourceAddress
@@ -71,9 +71,18 @@ class Client(var client: SmppClient = DefaultSmppClient()) {
             submitSm.addOptionalParameter(pssrResponse)
         }
         logger.info("[fun respondUssd] Sending SubmitSm...")
-        val pduResponse = session?.submit(submitSm, 300_000)
-        logger.info("[fun respondUssd] Received response: [${pduResponse.toString()}]")
-        return pduResponse
+        val future = session?.sendRequestPdu(submitSm, 300_000, false)
+        future ?: return
+        val completedWithinTimeout = future.await()
+        if (!completedWithinTimeout) {
+            logger.info("[fun respondUssd] Failed to receive response within specified time")
+            future.cancel()
+        } else if (future.isSuccess) {
+            val pduResponse = future.response
+            logger.info("[fun respondUssd] Received response: [$pduResponse]")
+        } else {
+            logger.error("[fun respondUssd] Failed: [${future.cause}]")
+        }
     }
 
     private fun buildSessionConfiguration(): SmppSessionConfiguration {
