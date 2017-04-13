@@ -2,6 +2,7 @@ package basson
 
 import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler
 import com.cloudhopper.smpp.pdu.DeliverSm
+import com.cloudhopper.smpp.pdu.Pdu
 import com.cloudhopper.smpp.pdu.PduRequest
 import com.cloudhopper.smpp.pdu.PduResponse
 import org.slf4j.Logger
@@ -19,6 +20,11 @@ class SesssionHandler(
             client.respondUssd(pduRequest)
         }
         return pduRequest.createResponse()
+    }
+
+    override fun firePduReceived(pdu: Pdu?): Boolean {
+        logger.info("SesssionHandler has received pdu ${pdu.toString()}")
+        return super.firePduReceived(pdu)
     }
 
     override fun fireChannelUnexpectedlyClosed() {

@@ -32,7 +32,7 @@ class Client(var client: SmppClient = DefaultSmppClient()) {
     }
 
     fun disconnect() {
-        session?.unbind(5_000)
+        session?.unbind(300_000)
         cleanup()
     }
 
@@ -45,6 +45,20 @@ class Client(var client: SmppClient = DefaultSmppClient()) {
 
     fun isConnected(): Boolean {
         return session != null
+    }
+
+    fun submit(
+            from: String = "Automatic Bassoon",
+            to: String = "79261234567",
+            payload: String = "Hello"
+    ): PduResponse? {
+        var sm = SubmitSm()
+        sm.sourceAddress = Address(SmppConstants.TON_ALPHANUMERIC, SmppConstants.NPI_UNKNOWN, from)
+        sm.destAddress = Address(SmppConstants.TON_INTERNATIONAL, SmppConstants.NPI_E164, to)
+        sm.dataCoding = SmppConstants.DATA_CODING_UCS2
+        sm.shortMessage = CharsetUtil.encode(payload, "UCS-2")
+
+        return session?.submit(sm, 300_000)
     }
 
     fun respondUssd(deliverSm: DeliverSm, responseText: String = "OK"): PduResponse? {
@@ -70,6 +84,7 @@ class Client(var client: SmppClient = DefaultSmppClient()) {
         sc.port = 2775
         sc.systemId = "smppclient1"
         sc.password = "password"
+        sc.bindTimeout = 300_000
         return sc
     }
 
@@ -84,7 +99,7 @@ class Client(var client: SmppClient = DefaultSmppClient()) {
             return false
         }
         else {
-            return targetValue == ussdServiceOp?.value?.get(0)
+            return targetValue == ussdServiceOp.value?.get(0)
         }
     }
 }
