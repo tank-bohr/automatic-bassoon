@@ -1,5 +1,6 @@
-package basson
+package bassoon
 
+import bassoon.config.ClientDto
 import com.cloudhopper.commons.charset.CharsetUtil
 import com.cloudhopper.smpp.*
 import com.cloudhopper.smpp.impl.DefaultSmppClient
@@ -12,27 +13,40 @@ import com.cloudhopper.smpp.type.SmppChannelConnectTimeoutException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-class Client(val client: SmppClient = DefaultSmppClient(), val name: String = "basson") {
-    private val config = buildSessionConfiguration()
+// Timeouts in milliseconds
+const val BIND_TIMEOUT: Long = 300_000
+const val UNBIND_TIMEOUT: Long = 300_000
+const val SUBMIT_TIMEOUT: Long = 300_000
+
+class Client(val config: ClientDto) {
+    val name: String = config.name
+    var zkNode: String? = null
+        private set
+    private val client: SmppClient = DefaultSmppClient()
+    private val sessionConfig = buildSessionConfiguration()
     private val sessionHandler: SesssionHandler = SesssionHandler(this)
     private var session: SmppSession? = null
     private val logger: Logger = LoggerFactory.getLogger(DefaultSmppClient::class.java)
-
     private val pssrResponse: Tlv = Tlv(
             SmppConstants.TAG_USSD_SERVICE_OP,
             byteArrayOf(17),
             SmppConstants.TAG_NAME_MAP[SmppConstants.TAG_USSD_SERVICE_OP]
     )
 
-    fun connect() {
-        try { if (!isConnected()) session = bind() }
+    fun connect(zkNodePath: String? = null) {
+        try {
+            if (!isConnected()) {
+                session = bind()
+                zkNode = zkNodePath
+            }
+        }
         catch(e: SmppChannelConnectException) { }
         catch(e: SmppChannelConnectTimeoutException) { }
         catch(e: SmppBindException) { }
     }
 
     fun disconnect() {
-        session?.unbind(300_000)
+        session?.unbind(UNBIND_TIMEOUT)
         cleanup()
     }
 
@@ -53,12 +67,12 @@ class Client(val client: SmppClient = DefaultSmppClient(), val name: String = "b
             payload: String = "Hello"
     ): PduResponse? {
         val sm = SubmitSm()
-        sm.sourceAddress = Address(SmppConstants.TON_ALPHANUMERIC, SmppConstants.NPI_UNKNOWN, from)
-        sm.destAddress = Address(SmppConstants.TON_INTERNATIONAL, SmppConstants.NPI_E164, to)
-        sm.dataCoding = SmppConstants.DATA_CODING_UCS2
-        sm.shortMessage = CharsetUtil.encode(payload, "UCS-2")
+        sm.sourceAddress = Address(config.sourceTon, config.sourceNpi, from)
+        sm.destAddress = Address(config.destTon, config.destNpi, to)
+        sm.dataCoding = config.dataCoding
+        sm.shortMessage = CharsetUtil.encode(payload, config.charset)
 
-        return session?.submit(sm, 300_000)
+        return session?.submit(sm, SUBMIT_TIMEOUT)
     }
 
     fun respondUssd(deliverSm: DeliverSm, responseText: String = "OK") {
@@ -71,7 +85,7 @@ class Client(val client: SmppClient = DefaultSmppClient(), val name: String = "b
             submitSm.addOptionalParameter(pssrResponse)
         }
         logger.info("[fun respondUssd] Sending SubmitSm...")
-        val pduResponse = session?.submit(submitSm, 300_000)
+        val pduResponse = session?.submit(submitSm, SUBMIT_TIMEOUT)
         logger.info("[fun respondUssd] Received response: [${pduResponse.toString()}]")
         session?.sendResponsePdu(deliverSm.createResponse())
     }
@@ -80,16 +94,16 @@ class Client(val client: SmppClient = DefaultSmppClient(), val name: String = "b
         val sc = SmppSessionConfiguration()
         sc.name = name
         sc.type = SmppBindType.TRANSCEIVER
-        sc.host = "localhost"
-        sc.port = 2775
-        sc.systemId = "smppclient1"
-        sc.password = "password"
-        sc.bindTimeout = 300_000
+        sc.host = config.host
+        sc.port = config.port
+        sc.systemId = config.systemId
+        sc.password = config.password
+        sc.bindTimeout = BIND_TIMEOUT
         return sc
     }
 
     private fun bind(): SmppSession {
-        return client.bind(config, sessionHandler)
+        return client.bind(sessionConfig, sessionHandler)
     }
 
     private fun isPssrIndication(pdu: Pdu): Boolean {

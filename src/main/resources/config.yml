@@ -1,0 +1,5 @@
+clients:
+  -
+    name: smppsim
+    systemId: smppclient1
+    password: password

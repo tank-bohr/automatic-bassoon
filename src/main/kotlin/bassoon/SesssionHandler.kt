@@ -1,4 +1,4 @@
-package basson
+package bassoon
 
 import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler
 import com.cloudhopper.smpp.pdu.DeliverSm

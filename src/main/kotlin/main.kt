@@ -1,13 +1,11 @@
-import basson.Client
-import java.lang.Thread.sleep
+import bassoon.ClientsRegistry
+import bassoon.config.Config
 
 fun main(args: Array<String>) {
-    val client = Client()
-//    client.connect()
-//    client.submit()
-//    client.disconnect()
-    while (true) {
-        client.connect()
-        sleep(15_000)
+    val config = Config().loadFromResources()
+    val registry = ClientsRegistry()
+    for (clientConfig in config.clients) {
+        registry.add(clientConfig)
     }
+    registry.check()
 }
