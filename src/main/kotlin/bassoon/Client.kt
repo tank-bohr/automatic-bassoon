@@ -62,11 +62,11 @@ class Client(val config: ClientDto) {
     }
 
     fun submit(
-            from: String = "Automatic Bassoon",
             to: String = "79261234567",
             payload: String = "Hello"
     ): PduResponse? {
         val sm = SubmitSm()
+        val from = config.from ?: "Automatic Bassoon"
         sm.sourceAddress = Address(config.sourceTon, config.sourceNpi, from)
         sm.destAddress = Address(config.destTon, config.destNpi, to)
         sm.dataCoding = config.dataCoding

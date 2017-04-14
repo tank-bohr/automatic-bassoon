@@ -26,5 +26,6 @@ dependencies {
     compile "org.slf4j:slf4j-simple:1.8.0-alpha0"
     compile "com.fizzed:ch-smpp:6.0.0-netty4-beta-3"
     compile "org.apache.zookeeper:zookeeper:3.4.10"
+    compile "com.sparkjava:spark-core:2.5.5"
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
 }

@@ -8,6 +8,7 @@ class ClientDto(
         val password: String,
         val systemType: String?,
         val serviceType: String?,
+        val from: String?,
         host: String?,
         port: Int?,
         sourceTon: Byte?,

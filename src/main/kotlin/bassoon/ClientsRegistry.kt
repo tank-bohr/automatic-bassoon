@@ -27,7 +27,7 @@ class ClientsRegistry: Watcher {
     fun check() {
         createClientsPath()
         while (true) {
-            logger.info("Check cycle...")
+            logger.debug("Check cycle...")
             check_all_clients()
             Thread.sleep(CHECKING_TIMEOUT)
         }
