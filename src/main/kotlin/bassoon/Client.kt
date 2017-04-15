@@ -20,7 +20,7 @@ const val BIND_TIMEOUT: Long = 300_000
 const val UNBIND_TIMEOUT: Long = 300_000
 const val SUBMIT_TIMEOUT: Long = 300_000
 
-class Client(val config: ClientDto) {
+class Client(val config: ClientDto, val registry: ClientsRegistry? = null) {
     val name: String = config.name
     var zkNode: String? = null
         private set
@@ -32,16 +32,17 @@ class Client(val config: ClientDto) {
     private val pssrResponse: Tlv = buildTlv(SmppConstants.TAG_USSD_SERVICE_OP, byteArrayOf(17))
     private val rand: Random = Random()
 
-    fun connect(zkNodePath: String? = null) {
-        try {
+    fun connect(zkNodePath: String? = null): Boolean {
+        return try {
             if (!isConnected()) {
                 session = bind()
                 zkNode = zkNodePath
             }
+            true
         }
-        catch(e: SmppChannelConnectException) { }
-        catch(e: SmppChannelConnectTimeoutException) { }
-        catch(e: SmppBindException) { }
+        catch(e: SmppChannelConnectException) { false }
+        catch(e: SmppChannelConnectTimeoutException) { false }
+        catch(e: SmppBindException) { false }
     }
 
     fun disconnect() {
@@ -53,7 +54,8 @@ class Client(val config: ClientDto) {
         session?.close()
         session?.destroy()
         session = null
-        client.destroy()
+
+        registry?.cleanup(name)
     }
 
     fun isConnected(): Boolean {
