@@ -2,11 +2,14 @@ package bassoon
 
 import bassoon.config.CallbackDto
 import bassoon.config.Config
+import com.cloudhopper.commons.charset.CharsetUtil
 import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler
 import com.cloudhopper.smpp.pdu.DeliverSm
 import com.cloudhopper.smpp.pdu.Pdu
 import com.cloudhopper.smpp.pdu.PduRequest
 import com.cloudhopper.smpp.pdu.PduResponse
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import okhttp3.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -22,6 +25,7 @@ class SessionHandler(
 ) : DefaultSmppSessionHandler(logger) {
 
     val httpClient: OkHttpClient = OkHttpClient()
+    val mapper: ObjectMapper = ObjectMapper().registerKotlinModule()
 
     override fun firePduRequestReceived(pduRequest: PduRequest<*>): PduResponse? {
         return pduRequest.createResponse()
@@ -80,6 +84,20 @@ class SessionHandler(
     }
 
     private fun pduToJson(pdu: DeliverSm): String {
-        return "{}"
+        val optionalParameters: HashMap<String, ByteArray> = hashMapOf()
+        if (pdu.optionalParameters != null) {
+            for (tlv in pdu.optionalParameters) {
+                optionalParameters.put(tlv.tagName, tlv.value)
+            }
+        }
+        val mobileOriginated = MoData(
+                source_address = pdu.sourceAddress.address,
+                dest_address = pdu.destAddress.address,
+                service_type = pdu.serviceType,
+                short_message = CharsetUtil.decode(pdu.shortMessage, client.config.charset),
+                optional_parameters = optionalParameters
+        )
+        val smData = SmData(operator = client.name, mobile_originated = mobileOriginated)
+        return mapper.writeValueAsString(smData)
     }
 }
