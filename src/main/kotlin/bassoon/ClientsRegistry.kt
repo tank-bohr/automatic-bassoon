@@ -2,6 +2,7 @@ package bassoon
 
 import bassoon.config.ClientDto
 import org.apache.zookeeper.*
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 
@@ -13,7 +14,7 @@ const val ZK_NODE_NAME: String = "session"
 class ClientsRegistry: Watcher {
     var clients: ConcurrentHashMap<String, Client> = ConcurrentHashMap()
     val zk: ZooKeeper = connectZk()
-    val logger = LoggerFactory.getLogger(javaClass)
+    val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     fun add(config: ClientDto) {
         val client = Client(config)
