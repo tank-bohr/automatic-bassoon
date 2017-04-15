@@ -12,17 +12,25 @@ const val ZK_CLIENTS_PATH: String = "/automatic/bassoon/registry/clients"
 const val ZK_NODE_NAME: String = "session"
 
 class ClientsRegistry: Watcher {
-    var clients: ConcurrentHashMap<String, Client> = ConcurrentHashMap()
-    val zk: ZooKeeper = connectZk()
-    val logger: Logger = LoggerFactory.getLogger(javaClass)
+    private var clients: ConcurrentHashMap<String, Client> = ConcurrentHashMap()
+    private val zk: ZooKeeper = connectZk()
+    private val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     fun add(config: ClientDto) {
-        val client = Client(config)
+        val client = Client(config, registry = this)
         clients.put(client.name, client)
     }
 
     fun fetch(name: String): Client? {
         return clients[name]
+    }
+
+    fun cleanup(name: String) {
+        val session = mySession(name)
+        if (session != null) {
+            val path = "${clientPath(name)}/$session"
+            zk.delete(path, -1)
+        }
     }
 
     fun check() {
@@ -41,27 +49,41 @@ class ClientsRegistry: Watcher {
     }
 
     private fun check_client(client: Client) {
+        val name = client.name
+
+        val session = mySession(name)
+        if (session != null) {
+            logger.debug("Client $name is already connected")
+            return
+        }
+
+        val clientPath = clientPath(name)
         val allowedConnections = client.config.allowedConnections
-        val clientPath = "$ZK_CLIENTS_PATH/${client.name}"
-        ensureNodeExists(clientPath)
-        if (needRegister(clientPath, allowedConnections)) {
-            registerAndConnect(clientPath, client)
+        val stats = zk.exists(clientPath, false)
+        if (stats.numChildren >= allowedConnections) {
+            logger.debug("Allowed connection number exceeded")
+            return
         }
+
+        logger.debug("Register and connect [$name]...")
+        registerAndConnect(client)
     }
 
-    private fun needRegister(path: String, allowedConnections: Int): Boolean {
-        val children = zk.getChildren(path, false)
-        val alreadyRegisterd = children.any {
-            val stats = zk.exists(path, false)
-            stats.ephemeralOwner == zk.sessionId
-        }
-        return !alreadyRegisterd && (children.size < allowedConnections)
-    }
-
-    private fun registerAndConnect(path: String, client: Client) {
-        val nodePath = "$path/$ZK_NODE_NAME"
+    private fun registerAndConnect(client: Client) {
+        val name = client.name
+        val clientPath = clientPath(name)
+        val nodePath = "$clientPath/$ZK_NODE_NAME"
         val node = zk.create(nodePath, byteArrayOf(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL)
-        client.connect(node)
+        var connected = false
+        try {
+            connected = client.connect(node)
+        }
+        finally {
+            if (!connected) {
+                cleanup(name)
+            }
+        }
+
     }
 
     private fun connectZk(): ZooKeeper {
@@ -82,6 +104,19 @@ class ClientsRegistry: Watcher {
         val stats = zk.exists(path, false)
         if (stats == null) zk.create(path, byteArrayOf(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
         return path
+    }
+
+    private fun clientPath(name: String): String {
+        return ensureNodeExists("$ZK_CLIENTS_PATH/$name")
+    }
+
+    private fun mySession(name: String): String? {
+        val clientPath = clientPath(name)
+        val children = zk.getChildren(clientPath, false)
+        return children.find {
+            val stats = zk.exists("$clientPath/$it", false)
+            stats.ephemeralOwner == zk.sessionId
+        }
     }
 
     override fun process(event: WatchedEvent?) {
