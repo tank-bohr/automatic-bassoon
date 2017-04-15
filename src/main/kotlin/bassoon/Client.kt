@@ -24,7 +24,7 @@ class Client(val config: ClientDto) {
         private set
     private val client: SmppClient = DefaultSmppClient()
     private val sessionConfig = buildSessionConfiguration()
-    private val sessionHandler: SesssionHandler = SesssionHandler(this)
+    private val sessionHandler: SessionHandler = SessionHandler(this)
     private var session: SmppSession? = null
     private val logger: Logger = LoggerFactory.getLogger(DefaultSmppClient::class.java)
     private val pssrResponse: Tlv = Tlv(

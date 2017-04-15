@@ -7,13 +7,15 @@ import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 
-class Config {
-    fun loadFromResources(): ConfigDto {
+object Config {
+    val config: ConfigDto = loadFromResources()
+
+    private fun loadFromResources(): ConfigDto {
         val configPath = javaClass.classLoader.getResource("config.yml").getFile()
         return loadFromFile(path = FileSystems.getDefault().getPath(configPath))
     }
 
-    fun loadFromFile(path: Path): ConfigDto {
+    private fun loadFromFile(path: Path): ConfigDto {
         val mapper = ObjectMapper(YAMLFactory()) // Enable YAML parsing
         mapper.registerModule(KotlinModule()) // Enable Kotlin support
 

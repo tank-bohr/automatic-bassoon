@@ -1,9 +1,9 @@
 package bassoon.config
 
 data class CallbackDto(
+        val scheme: String,
         val host: String,
         val port: Int,
-        val url: String,
-        val useSsl: Boolean,
+        val path: String,
         val headers: Map<String, String>
 )
