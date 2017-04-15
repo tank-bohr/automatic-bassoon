@@ -83,7 +83,6 @@ class ClientsRegistry: Watcher {
                 cleanup(name)
             }
         }
-
     }
 
     private fun connectZk(): ZooKeeper {

@@ -6,7 +6,7 @@ import spark.Spark.*
 
 class WebApp(val registry: ClientsRegistry) {
     fun run() {
-        get("/") { _, _ -> "Hello" }
+        get("/") { _, _ -> "OK" }
         post("/send_sms/:name", this::sendSms)
     }
 
