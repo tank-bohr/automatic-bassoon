@@ -2,6 +2,7 @@ package bassoon
 
 import bassoon.config.ClientDto
 import com.cloudhopper.commons.charset.CharsetUtil
+import com.cloudhopper.commons.gsm.GsmUtil
 import com.cloudhopper.smpp.*
 import com.cloudhopper.smpp.impl.DefaultSmppClient
 import com.cloudhopper.smpp.pdu.*
@@ -12,6 +13,7 @@ import com.cloudhopper.smpp.type.SmppChannelConnectException
 import com.cloudhopper.smpp.type.SmppChannelConnectTimeoutException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.util.*
 
 // Timeouts in milliseconds
 const val BIND_TIMEOUT: Long = 300_000
@@ -27,11 +29,8 @@ class Client(val config: ClientDto) {
     private val sessionHandler: SessionHandler = SessionHandler(this)
     private var session: SmppSession? = null
     private val logger: Logger = LoggerFactory.getLogger(DefaultSmppClient::class.java)
-    private val pssrResponse: Tlv = Tlv(
-            SmppConstants.TAG_USSD_SERVICE_OP,
-            byteArrayOf(17),
-            SmppConstants.TAG_NAME_MAP[SmppConstants.TAG_USSD_SERVICE_OP]
-    )
+    private val pssrResponse: Tlv = buildTlv(SmppConstants.TAG_USSD_SERVICE_OP, byteArrayOf(17))
+    private val rand: Random = Random()
 
     fun connect(zkNodePath: String? = null) {
         try {
@@ -64,30 +63,68 @@ class Client(val config: ClientDto) {
     fun submit(
             to: String = "79261234567",
             payload: String = "Hello"
-    ): PduResponse? {
-        val sm = SubmitSm()
+    ): SubmitSmResp? {
         val from = config.from ?: "Automatic Bassoon"
-        sm.sourceAddress = Address(config.sourceTon, config.sourceNpi, from)
-        sm.destAddress = Address(config.destTon, config.destNpi, to)
-        sm.dataCoding = config.dataCoding
-        sm.shortMessage = CharsetUtil.encode(payload, config.charset)
-
-        return session?.submit(sm, SUBMIT_TIMEOUT)
+        val sourceAddress = Address(config.sourceTon, config.sourceNpi, from)
+        val destAddress = Address(config.destTon, config.destNpi, to)
+        val encodedText = CharsetUtil.encode(payload, config.charset)
+        return if (config.useMessagePayload) {
+            submitOnce(sourceAddress, destAddress, encodedText, useMessagePayload = true)
+        } else {
+            submitWithUdhi(sourceAddress, destAddress, encodedText)
+        }
     }
 
     fun respondUssd(deliverSm: DeliverSm, responseText: String = "OK") {
-        val submitSm = SubmitSm()
-        submitSm.sourceAddress = deliverSm.destAddress
-        submitSm.destAddress = deliverSm.sourceAddress
-        submitSm.dataCoding = SmppConstants.DATA_CODING_DEFAULT
-        submitSm.shortMessage = CharsetUtil.encode(responseText, "ISO-8859-1")
-        if (isPssrIndication(deliverSm)) {
-            submitSm.addOptionalParameter(pssrResponse)
-        }
         logger.info("[fun respondUssd] Sending SubmitSm...")
-        val pduResponse = session?.submit(submitSm, SUBMIT_TIMEOUT)
-        logger.info("[fun respondUssd] Received response: [${pduResponse.toString()}]")
+        val submitSmResp = submitOnce(
+                sourceAddress = deliverSm.destAddress,
+                destAddress = deliverSm.sourceAddress,
+                shortMessage = CharsetUtil.encode(responseText, config.charset),
+                pssr = isPssrIndication(deliverSm)
+        )
+        logger.info("[fun respondUssd] Received response: [${submitSmResp.toString()}]")
         session?.sendResponsePdu(deliverSm.createResponse())
+    }
+
+    private fun submitWithUdhi(sourceAddress: Address, destAddress: Address, encodedText: ByteArray): SubmitSmResp? {
+        val referenceNum = referenceNumber()
+        val parts = GsmUtil.createConcatenatedBinaryShortMessages(encodedText, referenceNum)
+        return if (parts == null) {
+            submitOnce(sourceAddress, destAddress, encodedText)
+        } else {
+            parts.map { submitOnce(sourceAddress, destAddress, it, udhi = true) }.last()
+        }
+    }
+
+    private fun submitOnce (
+            sourceAddress: Address,
+            destAddress: Address,
+            shortMessage: ByteArray,
+            udhi: Boolean = false,
+            pssr: Boolean = false,
+            useMessagePayload: Boolean = false
+    ): SubmitSmResp? {
+        val sm = SubmitSm()
+        sm.sourceAddress = sourceAddress
+        sm.destAddress = destAddress
+        sm.dataCoding = config.dataCoding
+        if (udhi) {
+            sm.registeredDelivery = SmppConstants.REGISTERED_DELIVERY_SMSC_RECEIPT_REQUESTED
+            sm.esmClass = SmppConstants.ESM_CLASS_UDHI_MASK
+        }
+        if (config.serviceType != null) {
+            sm.serviceType = config.serviceType
+        }
+        if (pssr) {
+            sm.addOptionalParameter(pssrResponse)
+        }
+        if (useMessagePayload) {
+            sm.addOptionalParameter(messagePayloadTlv(shortMessage))
+        } else {
+            sm.shortMessage = shortMessage
+        }
+        return session?.submit(sm, SUBMIT_TIMEOUT)
     }
 
     private fun buildSessionConfiguration(): SmppSessionConfiguration {
@@ -115,5 +152,19 @@ class Client(val config: ClientDto) {
         else {
             return targetValue == ussdServiceOp.value?.get(0)
         }
+    }
+
+    private fun referenceNumber(): Byte {
+        val bytes = byteArrayOf(0)
+        rand.nextBytes(bytes)
+        return bytes.first()
+    }
+
+    private fun messagePayloadTlv(payload: ByteArray): Tlv {
+        return buildTlv(SmppConstants.TAG_MESSAGE_PAYLOAD, payload)
+    }
+
+    private fun buildTlv(tag: Short, value: ByteArray): Tlv {
+        return Tlv(tag, value, SmppConstants.TAG_NAME_MAP[tag])
     }
 }

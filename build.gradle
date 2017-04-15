@@ -25,6 +25,7 @@ dependencies {
     compile "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jackson_version"
     compile "org.slf4j:slf4j-simple:1.8.0-alpha0"
     compile "com.fizzed:ch-smpp:6.0.0-netty4-beta-3"
+    compile "com.cloudhopper:ch-commons-gsm:3.0.0"
     compile "org.apache.zookeeper:zookeeper:3.4.10"
     compile "com.sparkjava:spark-core:2.5.5"
     compile "com.squareup.okhttp3:okhttp:3.6.0"
