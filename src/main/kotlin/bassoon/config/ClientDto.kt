@@ -6,19 +6,19 @@ class ClientDto(
         val name: String,
         val systemId: String,
         val password: String,
-        val systemType: String?,
-        val serviceType: String?,
-        val from: String?,
-        host: String?,
-        port: Int?,
-        sourceTon: Byte?,
-        sourceNpi: Byte?,
-        destTon: Byte?,
-        destNpi: Byte?,
-        dataCoding: Byte?,
-        charset: String?,
-        allowedConnections: Int?,
-        useMessagePayload: Boolean?
+        val systemType: String? = null,
+        val serviceType: String? = null,
+        val from: String? = null,
+        host: String? = null,
+        port: Int? = null,
+        sourceTon: Byte? = null,
+        sourceNpi: Byte? = null,
+        destTon: Byte? = null,
+        destNpi: Byte? = null,
+        dataCoding: Byte? = null,
+        charset: String? = null,
+        allowedConnections: Int? = null,
+        useMessagePayload: Boolean? = null
 ) {
     val host: String = host ?: "localhost"
     val port: Int = port ?: 2775
