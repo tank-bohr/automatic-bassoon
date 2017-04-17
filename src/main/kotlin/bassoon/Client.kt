@@ -22,8 +22,6 @@ const val SUBMIT_TIMEOUT: Long = 300_000
 
 class Client(val config: ClientDto, val registry: ClientsRegistry? = null) {
     val name: String = config.name
-    var zkNode: String? = null
-        private set
     private val client: SmppClient = DefaultSmppClient()
     private val sessionConfig = buildSessionConfiguration()
     private val sessionHandler: SessionHandler = SessionHandler(this)
@@ -36,7 +34,6 @@ class Client(val config: ClientDto, val registry: ClientsRegistry? = null) {
         return try {
             if (!isConnected()) {
                 session = bind()
-                zkNode = zkNodePath
             }
             true
         }
