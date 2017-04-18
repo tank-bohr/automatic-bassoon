@@ -5,14 +5,14 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 
 class ClientsRegistry(val executor: Executor) {
-    private var clients: ConcurrentHashMap<String, RegisterableClient> = ConcurrentHashMap()
+    private var clients: ConcurrentHashMap<String, RegistrableClient> = ConcurrentHashMap()
     private val logger: Logger = LoggerFactory.getLogger(javaClass)
 
-    fun add(client: RegisterableClient) {
+    fun add(client: RegistrableClient) {
         clients.put(client.name, client)
     }
 
-    fun fetch(name: String): RegisterableClient? {
+    fun fetch(name: String): RegistrableClient? {
         return clients[name]
     }
 
@@ -28,7 +28,7 @@ class ClientsRegistry(val executor: Executor) {
     }
 
 
-    private fun check_client(client: RegisterableClient) {
+    private fun check_client(client: RegistrableClient) {
         val name = client.name
         val allowedConnections = client.allowedConnections
 
@@ -45,7 +45,7 @@ class ClientsRegistry(val executor: Executor) {
         registerAndConnect(client)
     }
 
-    private fun registerAndConnect(client: RegisterableClient) {
+    private fun registerAndConnect(client: RegistrableClient) {
         val name = client.name
         val registered = executor.register(name)
         var connected = false

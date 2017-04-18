@@ -20,7 +20,7 @@ const val BIND_TIMEOUT: Long = 300_000
 const val UNBIND_TIMEOUT: Long = 300_000
 const val SUBMIT_TIMEOUT: Long = 300_000
 
-class Client(val config: ClientDto, val registry: ClientsRegistry? = null) : RegisterableClient {
+class Client(val config: ClientDto, val registry: ClientsRegistry? = null) : RegistrableClient {
     override val name: String = config.name
     override val allowedConnections: Int = config.allowedConnections
 

@@ -4,17 +4,17 @@ import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.context
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
-import support.FakeClient
-import support.FakeExecutor
+import support.MockClient
+import support.MockExecutor
 import kotlin.test.assertEquals
 
 class ClientsRegistrySpec : Spek({
 
-    val defaultClient = FakeClient()
+    val defaultClient = MockClient()
 
     describe("add/fetch") {
         it("adds a client which can be fetched") {
-            val registry = ClientsRegistry(FakeExecutor())
+            val registry = ClientsRegistry(MockExecutor())
             registry.add(defaultClient)
             val client = registry.fetch("pants")
             assertEquals(defaultClient, client)
@@ -23,7 +23,7 @@ class ClientsRegistrySpec : Spek({
 
     describe("cleanup") {
         it("calls Exucutor::cleanup") {
-            val executor = FakeExecutor()
+            val executor = MockExecutor()
             val registry = ClientsRegistry(executor)
             registry.cleanup("some-client")
 
@@ -34,7 +34,7 @@ class ClientsRegistrySpec : Spek({
     describe("check") {
         context("when client already connected") {
             it("doesn't register") {
-                val executor = FakeExecutor(exists = true)
+                val executor = MockExecutor(exists = true)
                 val registry = ClientsRegistry(executor)
                 registry.add(defaultClient)
 
@@ -46,7 +46,7 @@ class ClientsRegistrySpec : Spek({
 
         context("when exceeded allowed connections") {
             it("doesn't register") {
-                val executor = FakeExecutor(exceeded = true)
+                val executor = MockExecutor(exceeded = true)
                 val registry = ClientsRegistry(executor)
                 registry.add(defaultClient)
 
@@ -58,9 +58,9 @@ class ClientsRegistrySpec : Spek({
 
         context("when everything is ok") {
             it("registers and connects client") {
-                val executor = FakeExecutor()
+                val executor = MockExecutor()
                 val registry = ClientsRegistry(executor)
-                val client = FakeClient()
+                val client = MockClient()
                 registry.add(client)
 
                 registry.check()

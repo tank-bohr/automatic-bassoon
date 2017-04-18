@@ -1,6 +1,6 @@
 package bassoon
 
-interface RegisterableClient {
+interface RegistrableClient {
     val name: String
     val allowedConnections: Int
     fun connect(): Boolean

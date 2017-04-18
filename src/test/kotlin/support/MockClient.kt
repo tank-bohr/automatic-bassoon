@@ -1,12 +1,12 @@
 package support
 
-import bassoon.RegisterableClient
+import bassoon.RegistrableClient
 
-class FakeClient(
+class MockClient(
         override val name: String = "pants",
         override val allowedConnections: Int = 17,
         val canBeConnected: Boolean = true
-) : RegisterableClient {
+) : RegistrableClient {
 
     private var isConnected: Boolean = false
 

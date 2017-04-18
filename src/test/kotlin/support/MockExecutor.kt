@@ -2,7 +2,7 @@ package support
 
 import bassoon.Executor
 
-class FakeExecutor(val exists: Boolean = false, val exceeded: Boolean = false) : Executor {
+class MockExecutor(val exists: Boolean = false, val exceeded: Boolean = false) : Executor {
     private val cleaned: MutableList<String> = mutableListOf()
     private val registered: MutableList<String> = mutableListOf()
 

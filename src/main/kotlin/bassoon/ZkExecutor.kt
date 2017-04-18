@@ -7,10 +7,10 @@ const val ZK_CLIENTS_PATH: String = "/automatic/bassoon/registry/clients"
 const val ZK_NODE_NAME: String = "session"
 
 
-class ZkExecutor() : Watcher, Executor {
+class ZkExecutor : Watcher, Executor {
     private val connectionString: String = System.getenv("ZK_CONNECTION_STRING") ?: "localhost:2181"
-    private val zk: ZooKeeper = ZooKeeper(connectionString, ZK_SESSION_TIMEOUT, this)
     private val zkEmptyData = byteArrayOf()
+    private val zk: ZooKeeper = ZooKeeper(connectionString, ZK_SESSION_TIMEOUT, this)
 
     init {
         createClientsPath()
