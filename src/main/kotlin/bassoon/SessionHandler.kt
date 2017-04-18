@@ -17,7 +17,7 @@ import kotlin.concurrent.thread
 
 
 val JSON: MediaType = MediaType.parse("application/json; charset=utf-8")
-
+val DEFAULT_RESPONSE_TEXT = "OK"
 
 class SessionHandler(
         var client: Client,
@@ -35,9 +35,14 @@ class SessionHandler(
         if (pdu is DeliverSm) {
             logger.info("USSD received...")
             val responseText = if (Config.config.callback != null) {
-                callback(pdu, Config.config.callback)
+                val textFromCallback = callback(pdu, Config.config.callback)
+                if (textFromCallback.isEmpty()) {
+                    DEFAULT_RESPONSE_TEXT
+                } else {
+                    textFromCallback
+                }
             } else {
-                "OK"
+                DEFAULT_RESPONSE_TEXT
             }
 
             thread(
@@ -80,7 +85,7 @@ class SessionHandler(
         val request = requestBuilder.build()
         val response = httpClient.newCall(request).execute()
         logger.info("HTTP response: ${response.code()}")
-        return response.body().string()
+        return response.body().string().trim()
     }
 
     private fun pduToJson(pdu: DeliverSm): String {
