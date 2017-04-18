@@ -1,7 +1,5 @@
-import bassoon.Client
-import bassoon.ClientsRegistry
-import bassoon.WebApp
-import bassoon.ZkExecutor
+package bassoon
+
 import bassoon.config.Config
 import kotlin.concurrent.thread
 
