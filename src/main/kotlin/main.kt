@@ -1,16 +1,25 @@
+import bassoon.Client
 import bassoon.ClientsRegistry
 import bassoon.WebApp
+import bassoon.ZkExecutor
 import bassoon.config.Config
 import kotlin.concurrent.thread
 
+const val CHECKING_TIMEOUT: Long = 5000
+
 fun main(args: Array<String>) {
-    val registry = ClientsRegistry()
-    Config.config.clients.forEach { registry.add(it) }
+    val executor = ZkExecutor()
+    val registry = ClientsRegistry(executor)
 
-    thread(
-            name = "web",
-            block = { WebApp(registry).run() }
-    )
+    Config.config.clients.forEach {
+        val client = Client(it, registry)
+        registry.add(client)
+    }
 
-    registry.check()
+    thread(name = "web") { WebApp(registry).run() }
+
+    while (true) {
+        registry.check()
+        Thread.sleep(CHECKING_TIMEOUT)
+    }
 }
