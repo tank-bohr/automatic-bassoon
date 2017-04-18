@@ -1,20 +1,18 @@
 package bassoon
 
-import bassoon.config.ClientDto
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 
 class ClientsRegistry(val executor: Executor) {
-    private var clients: ConcurrentHashMap<String, Client> = ConcurrentHashMap()
+    private var clients: ConcurrentHashMap<String, RegisterableClient> = ConcurrentHashMap()
     private val logger: Logger = LoggerFactory.getLogger(javaClass)
 
-    fun add(config: ClientDto) {
-        val client = Client(config, registry = this)
+    fun add(client: RegisterableClient) {
         clients.put(client.name, client)
     }
 
-    fun fetch(name: String): Client? {
+    fun fetch(name: String): RegisterableClient? {
         return clients[name]
     }
 
@@ -30,9 +28,9 @@ class ClientsRegistry(val executor: Executor) {
     }
 
 
-    private fun check_client(client: Client) {
+    private fun check_client(client: RegisterableClient) {
         val name = client.name
-        val allowedConnections = client.config.allowedConnections
+        val allowedConnections = client.allowedConnections
 
         if (executor.exists(name)) {
             logger.debug("Client $name is already connected")
@@ -47,7 +45,7 @@ class ClientsRegistry(val executor: Executor) {
         registerAndConnect(client)
     }
 
-    private fun registerAndConnect(client: Client) {
+    private fun registerAndConnect(client: RegisterableClient) {
         val name = client.name
         val registered = executor.register(name)
         var connected = false

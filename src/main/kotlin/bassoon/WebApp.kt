@@ -13,7 +13,9 @@ class WebApp(val registry: ClientsRegistry) {
     fun sendSms(request: Request, response: Response) {
         val name = request.params("name")
         val client = registry.fetch(name)
-        if (client == null) {
+        if (client !is Client) {
+            throw RuntimeException("Not a SMPP client")
+        } else if (client == null) {
             halt(404)
         } else if (!client.isConnected()) {
             halt(503)
