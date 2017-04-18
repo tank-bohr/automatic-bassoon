@@ -11,7 +11,7 @@ object Config {
     val config: ConfigDto = loadFromResources()
 
     private fun loadFromResources(): ConfigDto {
-        val configPath = javaClass.classLoader.getResource("config.yml").getFile()
+        val configPath = System.getProperty("config") ?: javaClass.classLoader.getResource("config.yml").file
         return loadFromFile(path = FileSystems.getDefault().getPath(configPath))
     }
 
