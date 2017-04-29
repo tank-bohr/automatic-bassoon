@@ -2,22 +2,18 @@ package bassoon.config
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import java.nio.file.FileSystems
 import java.nio.file.Files
-import java.nio.file.Path
 
 object Config {
-    val config: ConfigDto = loadFromResources()
+    private val mapper = ObjectMapper(YAMLFactory()).registerKotlinModule()
 
-    private fun loadFromResources(): ConfigDto {
-        val configPath = System.getProperty("config") ?: javaClass.classLoader.getResource("config.yml").file
-        return loadFromFile(path = FileSystems.getDefault().getPath(configPath))
-    }
+    val config: ConfigDto = loadFromFile()
 
-    private fun loadFromFile(path: Path): ConfigDto {
-        val mapper = ObjectMapper(YAMLFactory()) // Enable YAML parsing
-        mapper.registerModule(KotlinModule()) // Enable Kotlin support
+    private fun loadFromFile(): ConfigDto {
+        val configPath = System.getProperty("config")
+        val path = FileSystems.getDefault().getPath(configPath)
 
         return Files.newBufferedReader(path).use {
             mapper.readValue(it, ConfigDto::class.java)
