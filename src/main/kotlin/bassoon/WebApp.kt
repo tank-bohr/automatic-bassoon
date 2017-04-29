@@ -6,6 +6,10 @@ import spark.Spark.*
 
 class WebApp(val registry: ClientsRegistry) {
     fun run() {
+        val httpPort = System.getenv("HTTP_PORT")?.toInt() ?: 8080
+        port(httpPort)
+
+        // Routes
         get("/") { _, _ -> "OK" }
         post("/send_sms/:name", this::sendSms)
     }
