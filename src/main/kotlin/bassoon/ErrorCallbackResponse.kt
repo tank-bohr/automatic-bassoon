@@ -1,6 +1,6 @@
 package bassoon
 
-class ErrorCallbackResponse : ICallbackResponse {
+class ErrorCallbackResponse : CallbackResponse {
     override fun responseText(): String {
         return "Error occurred"
     }

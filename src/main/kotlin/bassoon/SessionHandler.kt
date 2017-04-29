@@ -15,8 +15,8 @@ class SessionHandler(
         val logger: Logger = LoggerFactory.getLogger(DefaultSmppSessionHandler::class.java)
 ) : DefaultSmppSessionHandler(logger) {
 
-    val callback: ICallback = if (Config.config.callback != null) {
-        Callback(config = Config.config.callback, smsc = client.name, charset = client.config.charset)
+    val callback: Callback = if (Config.config.callback != null) {
+        HttpCallback(config = Config.config.callback, smsc = client.name, charset = client.config.charset)
     } else {
         NullCallback()
     }
