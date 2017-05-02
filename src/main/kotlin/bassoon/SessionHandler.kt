@@ -17,17 +17,13 @@ class SessionHandler(
         private val logger: Logger = LoggerFactory.getLogger(DefaultSmppSessionHandler::class.java)
 ) : DefaultSmppSessionHandler(logger) {
 
-    val callback: Callback = if (callbackConfig != null) {
-        HttpCallback(config = callbackConfig, smsc = client.name, charset = client.charset)
-    } else {
-        NullCallback()
-    }
+    val callback: Callback = callbackConfig?.let {
+        HttpCallback(config = it, smsc = client.name, charset = client.charset)
+    } ?: NullCallback()
 
-    override fun firePduRequestReceived(pduRequest: PduRequest<*>): PduResponse? {
-        return pduRequest.createResponse()
-    }
+    override fun firePduRequestReceived(pduRequest: PduRequest<*>): PduResponse? = pduRequest.createResponse()
 
-    override fun firePduReceived(pdu: Pdu?): Boolean {
+    override fun firePduReceived(pdu: Pdu?): Boolean =
         if (pdu is DeliverSm) {
             logger.info("USSD received...")
             val responseText = callback.run(pdu).responseText()
@@ -36,18 +32,15 @@ class SessionHandler(
                     name = "${client.name}-async-ussd-response",
                     block = { client.respondUssd(pdu, responseText) }
             )
-            return false
+            false
         } else {
-            return true
+            true
         }
-    }
 
     override fun fireChannelUnexpectedlyClosed() {
         logger.info("Unexpected channel closed. Cleanup...")
         client.cleanup()
     }
 
-    override fun fireUnknownThrowable(t: Throwable) {
-        logger.info("WTF?!? UnknownThrowable: [${t::class}]")
-    }
+    override fun fireUnknownThrowable(t: Throwable) = logger.info("WTF?!? UnknownThrowable: [${t::class}]")
 }

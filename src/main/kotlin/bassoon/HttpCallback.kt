@@ -9,16 +9,18 @@ import okhttp3.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-val JSON: MediaType = MediaType.parse("application/json; charset=utf-8")
-
 class HttpCallback(
-        val config: CallbackDto,
-        val smsc: String,
-        val charset: String,
-        val httpClient: OkHttpClient = OkHttpClient()
+        private val config: CallbackDto,
+        private val smsc: String,
+        private val charset: String,
+        private val httpClient: Call.Factory = OkHttpClient()
 ) : Callback {
-    val mapper: ObjectMapper = ObjectMapper().registerKotlinModule()
-    val logger: Logger = LoggerFactory.getLogger(javaClass)
+    private val mapper: ObjectMapper = ObjectMapper().registerKotlinModule()
+    private val logger: Logger = LoggerFactory.getLogger(javaClass)
+
+    companion object {
+        val JSON: MediaType = MediaType.parse("application/json; charset=utf-8")
+    }
 
     override fun run(pdu: DeliverSm): CallbackResponse {
         val body = RequestBody.create(JSON, pduToJson(pdu))
@@ -34,33 +36,28 @@ class HttpCallback(
                 .url(url)
                 .post(body)
 
-        for ((name, value) in config.headers) {
-            requestBuilder.addHeader(name, value)
+        config.headers.forEach {
+            (name, value) -> requestBuilder.addHeader(name, value)
         }
 
         val request = requestBuilder.build()
         val response = httpClient.newCall(request).execute()
-        logger.info("HTTP response: ${response.code()}")
+                .also { logger.info("HTTP response: ${it.code()}") }
 
         if (!response.isSuccessful) {
             return ErrorCallbackResponse()
         }
 
-        val responseJson = response.body().string().trim()
-        return if (!responseJson.isEmpty()) {
-            logger.info("responseJson is $responseJson")
-            mapper.readValue(responseJson, JsonCallbackResponse::class.java)
-        } else {
-            NullCallbackResponse()
-        }
+        return response.body().string().trim().takeIf(String::isNotEmpty)
+            ?.also { logger.info("responseJson is $it") }
+            ?.let { mapper.readValue(it, JsonCallbackResponse::class.java) }
+            ?: NullCallbackResponse()
     }
 
     private fun pduToJson(pdu: DeliverSm): String {
         val optionalParameters: HashMap<String, ByteArray> = hashMapOf()
-        if (pdu.optionalParameters != null) {
-            for (tlv in pdu.optionalParameters) {
-                optionalParameters.put(tlv.tagName, tlv.value)
-            }
+        pdu.optionalParameters?.forEach {
+            tlv -> optionalParameters.put(tlv.tagName, tlv.value)
         }
         val mobileOriginated = MoData(
                 source_address = pdu.sourceAddress.address,

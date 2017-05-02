@@ -1,5 +1,8 @@
 package bassoon
 
 interface CallbackResponse {
-    fun responseText(): String
+    companion object Constants {
+        const val DEFAULT_RESPONSE_TEXT = "OK"
+    }
+    fun responseText(): String = DEFAULT_RESPONSE_TEXT
 }

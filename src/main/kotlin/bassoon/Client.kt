@@ -11,21 +11,18 @@ import com.cloudhopper.smpp.tlv.Tlv
 import com.cloudhopper.smpp.type.Address
 import com.cloudhopper.smpp.type.SmppBindException
 import com.cloudhopper.smpp.type.SmppChannelConnectException
-import com.cloudhopper.smpp.type.SmppChannelConnectTimeoutException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.*
 
-// Timeouts in milliseconds
-const val BIND_TIMEOUT: Long = 300_000
-const val UNBIND_TIMEOUT: Long = 300_000
-const val SUBMIT_TIMEOUT: Long = 300_000
+typealias Millis = Long
 
 class Client(
         private val config: ClientDto,
         private val registry: ClientsRegistry? = null,
         private val callbackConfig: CallbackDto? = null
 ) : RegistrableClient {
+
     override val name: String = config.name
     override val allowedConnections: Int = config.allowedConnections
     val charset: String = config.charset
@@ -38,21 +35,24 @@ class Client(
     private val pssrResponse: Tlv = buildTlv(SmppConstants.TAG_USSD_SERVICE_OP, byteArrayOf(17))
     private val rand: Random = Random()
 
-    override fun connect(): Boolean {
-        return try {
+    companion object {
+        const val BIND_TIMEOUT: Millis = 300_000
+        const val UNBIND_TIMEOUT: Millis = 300_000
+        const val SUBMIT_TIMEOUT: Millis = 300_000
+    }
+
+    override fun connect(): Boolean =
+        try {
             if (!isConnected()) {
                 session = bind()
             }
             true
         }
         catch(e: SmppChannelConnectException) { false }
-        catch(e: SmppChannelConnectTimeoutException) { false }
         catch(e: SmppBindException) { false }
-    }
 
-    override fun isConnected(): Boolean {
-        return session != null
-    }
+
+    override fun isConnected() = session != null
 
     fun disconnect() {
         session?.unbind(UNBIND_TIMEOUT)
@@ -60,10 +60,11 @@ class Client(
     }
 
     fun cleanup() {
-        session?.close()
-        session?.destroy()
+        session?.run {
+            close()
+            destroy()
+        }
         session = null
-
         registry?.cleanup(name)
     }
 
@@ -84,25 +85,19 @@ class Client(
 
     fun respondUssd(deliverSm: DeliverSm, responseText: String = "OK") {
         logger.info("[fun respondUssd] Sending SubmitSm...")
-        val submitSmResp = submitOnce(
+        submitOnce(
                 sourceAddress = deliverSm.destAddress,
                 destAddress = deliverSm.sourceAddress,
                 shortMessage = CharsetUtil.encode(responseText, config.charset),
                 pssr = isPssrIndication(deliverSm)
-        )
-        logger.info("[fun respondUssd] Received response: [${submitSmResp.toString()}]")
+        ).also { logger.info("[fun respondUssd] Received response: [${it.toString()}]") }
         session?.sendResponsePdu(deliverSm.createResponse())
     }
 
-    private fun submitWithUdhi(sourceAddress: Address, destAddress: Address, encodedText: ByteArray): SubmitSmResp? {
-        val referenceNum = referenceNumber()
-        val parts = GsmUtil.createConcatenatedBinaryShortMessages(encodedText, referenceNum)
-        return if (parts == null) {
-            submitOnce(sourceAddress, destAddress, encodedText)
-        } else {
-            parts.map { submitOnce(sourceAddress, destAddress, it, udhi = true) }.last()
-        }
-    }
+    private fun submitWithUdhi(sourceAddress: Address, destAddress: Address, encodedText: ByteArray): SubmitSmResp? =
+        GsmUtil.createConcatenatedBinaryShortMessages(encodedText, referenceNumber())
+                ?.map { submitOnce(sourceAddress, destAddress, it, udhi = true) }?.last()
+                ?: submitOnce(sourceAddress, destAddress, encodedText)
 
     private fun submitOnce (
             sourceAddress: Address,
@@ -134,44 +129,26 @@ class Client(
         return session?.submit(sm, SUBMIT_TIMEOUT)
     }
 
-    private fun buildSessionConfiguration(): SmppSessionConfiguration {
-        val sc = SmppSessionConfiguration()
-        sc.name = name
-        sc.type = SmppBindType.TRANSCEIVER
-        sc.host = config.host
-        sc.port = config.port
-        sc.systemId = config.systemId
-        sc.password = config.password
-        sc.bindTimeout = BIND_TIMEOUT
-        return sc
-    }
-
-    private fun bind(): SmppSession {
-        return client.bind(sessionConfig, sessionHandler)
-    }
-
-    private fun isPssrIndication(pdu: Pdu): Boolean {
-        val targetValue: Byte = 1
-        val ussdServiceOp = pdu.getOptionalParameter(SmppConstants.TAG_USSD_SERVICE_OP)
-        if (ussdServiceOp == null) {
-            return false
+    private fun buildSessionConfiguration(): SmppSessionConfiguration =
+        SmppSessionConfiguration().also {
+            it.name = name
+            it.type = SmppBindType.TRANSCEIVER
+            it.host = config.host
+            it.port = config.port
+            it.systemId = config.systemId
+            it.password = config.password
+            it.bindTimeout = BIND_TIMEOUT
         }
-        else {
-            return targetValue == ussdServiceOp.value?.get(0)
-        }
-    }
 
-    private fun referenceNumber(): Byte {
-        val bytes = byteArrayOf(0)
-        rand.nextBytes(bytes)
-        return bytes.first()
-    }
+    private fun bind(): SmppSession = client.bind(sessionConfig, sessionHandler)
 
-    private fun messagePayloadTlv(payload: ByteArray): Tlv {
-        return buildTlv(SmppConstants.TAG_MESSAGE_PAYLOAD, payload)
-    }
+    private fun isPssrIndication(pdu: Pdu): Boolean = pdu.getOptionalParameter(SmppConstants.TAG_USSD_SERVICE_OP)?.let {
+        1.toByte() == it.value?.get(0)
+    } ?: false
 
-    private fun buildTlv(tag: Short, value: ByteArray): Tlv {
-        return Tlv(tag, value, SmppConstants.TAG_NAME_MAP[tag])
-    }
+    private fun referenceNumber(): Byte = byteArrayOf(0).also(rand::nextBytes).first()
+
+    private fun messagePayloadTlv(payload: ByteArray): Tlv = buildTlv(SmppConstants.TAG_MESSAGE_PAYLOAD, payload)
+
+    private fun buildTlv(tag: Short, value: ByteArray): Tlv = Tlv(tag, value, SmppConstants.TAG_NAME_MAP[tag])
 }

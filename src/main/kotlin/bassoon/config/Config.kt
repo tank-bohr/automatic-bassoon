@@ -8,15 +8,11 @@ import java.nio.file.Files
 
 class Config {
     private val mapper = ObjectMapper(YAMLFactory()).registerKotlinModule()
-    private val config: ConfigDto = loadFromFile()
+    private val config: ConfigDto by lazy { loadFromFile() }
 
-    fun clients(): Array<ClientDto> {
-        return config.clients
-    }
+    fun clients(): Array<ClientDto> = config.clients
 
-    fun callback(): CallbackDto? {
-        return config.callback
-    }
+    fun callback(): CallbackDto? = config.callback
 
     private fun loadFromFile(): ConfigDto {
         val configPath = System.getProperty("config")
