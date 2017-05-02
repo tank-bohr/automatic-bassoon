@@ -1,5 +1,6 @@
 package bassoon
 
+import bassoon.config.CallbackDto
 import bassoon.config.Config
 import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler
 import com.cloudhopper.smpp.pdu.DeliverSm
@@ -11,12 +12,13 @@ import org.slf4j.LoggerFactory
 import kotlin.concurrent.thread
 
 class SessionHandler(
-        var client: Client,
-        val logger: Logger = LoggerFactory.getLogger(DefaultSmppSessionHandler::class.java)
+        private val client: Client,
+        private val callbackConfig: CallbackDto?,
+        private val logger: Logger = LoggerFactory.getLogger(DefaultSmppSessionHandler::class.java)
 ) : DefaultSmppSessionHandler(logger) {
 
-    val callback: Callback = if (Config.config.callback != null) {
-        HttpCallback(config = Config.config.callback, smsc = client.name, charset = client.config.charset)
+    val callback: Callback = if (callbackConfig != null) {
+        HttpCallback(config = callbackConfig, smsc = client.name, charset = client.charset)
     } else {
         NullCallback()
     }

@@ -6,10 +6,17 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import java.nio.file.FileSystems
 import java.nio.file.Files
 
-object Config {
+class Config {
     private val mapper = ObjectMapper(YAMLFactory()).registerKotlinModule()
+    private val config: ConfigDto = loadFromFile()
 
-    val config: ConfigDto = loadFromFile()
+    fun clients(): Array<ClientDto> {
+        return config.clients
+    }
+
+    fun callback(): CallbackDto? {
+        return config.callback
+    }
 
     private fun loadFromFile(): ConfigDto {
         val configPath = System.getProperty("config")

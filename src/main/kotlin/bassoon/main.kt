@@ -9,8 +9,10 @@ fun main(args: Array<String>) {
     val executor = ZkExecutor()
     val registry = ClientsRegistry(executor)
 
-    Config.config.clients.forEach {
-        val client = Client(it, registry)
+    val config = Config()
+
+    config.clients().forEach {
+        val client = Client(config = it, registry = registry, callbackConfig = config.callback())
         registry.add(client)
     }
 

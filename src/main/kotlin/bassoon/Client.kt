@@ -1,5 +1,6 @@
 package bassoon
 
+import bassoon.config.CallbackDto
 import bassoon.config.ClientDto
 import com.cloudhopper.commons.charset.CharsetUtil
 import com.cloudhopper.commons.gsm.GsmUtil
@@ -20,13 +21,18 @@ const val BIND_TIMEOUT: Long = 300_000
 const val UNBIND_TIMEOUT: Long = 300_000
 const val SUBMIT_TIMEOUT: Long = 300_000
 
-class Client(val config: ClientDto, val registry: ClientsRegistry? = null) : RegistrableClient {
+class Client(
+        private val config: ClientDto,
+        private val registry: ClientsRegistry? = null,
+        private val callbackConfig: CallbackDto? = null
+) : RegistrableClient {
     override val name: String = config.name
     override val allowedConnections: Int = config.allowedConnections
+    val charset: String = config.charset
 
     private val client: SmppClient = DefaultSmppClient()
     private val sessionConfig = buildSessionConfiguration()
-    private val sessionHandler: SessionHandler = SessionHandler(this)
+    private val sessionHandler: SessionHandler = SessionHandler(client = this, callbackConfig = callbackConfig)
     private var session: SmppSession? = null
     private val logger: Logger = LoggerFactory.getLogger(DefaultSmppClient::class.java)
     private val pssrResponse: Tlv = buildTlv(SmppConstants.TAG_USSD_SERVICE_OP, byteArrayOf(17))
