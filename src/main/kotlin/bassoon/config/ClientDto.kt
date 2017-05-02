@@ -2,6 +2,15 @@ package bassoon.config
 
 import com.cloudhopper.smpp.SmppConstants
 
+/*
+
+NOTE: Далее идет матерный коммент, объясняющий почему я сотворил такую порнографию
+
+Единственное назначение этого класса хранить данные из конфига (это YAML-файл). При отсутсвии каких-то полей
+ебучий Jackson пихает null-ы вместо того, чтобы использовать значения по умолчанию. И мы падаем при парсинге YAML-а,
+потому что инициализируем null-ами не-nullable поля!
+
+*/
 class ClientDto(
         val name: String,
         val systemId: String,
