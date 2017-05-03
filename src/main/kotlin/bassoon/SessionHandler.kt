@@ -1,46 +1,42 @@
 package bassoon
 
 import bassoon.config.CallbackDto
-import bassoon.config.Config
 import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler
 import com.cloudhopper.smpp.pdu.DeliverSm
 import com.cloudhopper.smpp.pdu.Pdu
 import com.cloudhopper.smpp.pdu.PduRequest
 import com.cloudhopper.smpp.pdu.PduResponse
 import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import kotlin.concurrent.thread
 
 class SessionHandler(
         private val client: Client,
-        private val callbackConfig: CallbackDto?,
-        private val logger: Logger = LoggerFactory.getLogger(DefaultSmppSessionHandler::class.java)
-) : DefaultSmppSessionHandler(logger) {
+        callbackConfig: CallbackDto?,
+        private val logger: Logger = logger<SessionHandler>()) : DefaultSmppSessionHandler(logger) {
 
-    val callback: Callback = callbackConfig?.let {
+    private val callback: Callback = callbackConfig?.let {
         HttpCallback(config = it, smsc = client.name, charset = client.charset)
     } ?: NullCallback()
 
     override fun firePduRequestReceived(pduRequest: PduRequest<*>): PduResponse? = pduRequest.createResponse()
 
     override fun firePduReceived(pdu: Pdu?): Boolean =
-        if (pdu is DeliverSm) {
-            logger.info("USSD received...")
-            val responseText = callback.run(pdu).responseText()
-
-            thread(
-                    name = "${client.name}-async-ussd-response",
-                    block = { client.respondUssd(pdu, responseText) }
-            )
-            false
-        } else {
-            true
-        }
+            if (pdu is DeliverSm) {
+                logger.info("USSD received...")
+                val responseText = callback.run(pdu).responseText()
+                thread(
+                        name = "${client.name}-async-ussd-response",
+                        block = { client.respondUssd(pdu, responseText) }
+                )
+                false
+            } else {
+                true
+            }
 
     override fun fireChannelUnexpectedlyClosed() {
-        logger.info("Unexpected channel closed. Cleanup...")
+        logger.warn("Unexpected channel closed. Cleanup...")
         client.cleanup()
     }
 
-    override fun fireUnknownThrowable(t: Throwable) = logger.info("WTF?!? UnknownThrowable: [${t::class}]")
+    override fun fireUnknownThrowable(t: Throwable) = logger.error("WTF?!?", t)
 }
