@@ -27,8 +27,7 @@ class ClientDto(
         dataCoding: Byte? = null,
         charset: String? = null,
         allowedConnections: Int? = null,
-        useMessagePayload: Boolean? = null
-) {
+        useMessagePayload: Boolean? = null) {
     val host: String = host ?: "localhost"
     val port: Int = port ?: 2775
     val sourceTon: Byte = sourceTon ?: SmppConstants.TON_ALPHANUMERIC

@@ -1,3 +1,3 @@
 package bassoon
 
-class NullCallbackResponse: CallbackResponse
+class NullCallbackResponse : CallbackResponse

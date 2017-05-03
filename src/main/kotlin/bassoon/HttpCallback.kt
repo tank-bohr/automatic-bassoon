@@ -4,19 +4,21 @@ import bassoon.config.CallbackDto
 import com.cloudhopper.commons.charset.CharsetUtil
 import com.cloudhopper.smpp.pdu.DeliverSm
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import okhttp3.*
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 class HttpCallback(
         private val config: CallbackDto,
         private val smsc: String,
         private val charset: String,
-        private val httpClient: Call.Factory = OkHttpClient()
-) : Callback {
-    private val mapper: ObjectMapper = ObjectMapper().registerKotlinModule()
-    private val logger: Logger = LoggerFactory.getLogger(javaClass)
+        private val httpClient: Call.Factory = OkHttpClient()) : Callback {
+
+    private val mapper = ObjectMapper()
+            .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
+            .registerKotlinModule()
+
+    private val logger = logger<HttpCallback>()
 
     companion object {
         val JSON: MediaType = MediaType.parse("application/json; charset=utf-8")
@@ -35,10 +37,7 @@ class HttpCallback(
         val requestBuilder = Request.Builder()
                 .url(url)
                 .post(body)
-
-        config.headers.forEach {
-            (name, value) -> requestBuilder.addHeader(name, value)
-        }
+                .apply { headers(Headers.of(config.headers)) }
 
         val request = requestBuilder.build()
         val response = httpClient.newCall(request).execute()
@@ -49,24 +48,20 @@ class HttpCallback(
         }
 
         return response.body().string().trim().takeIf(String::isNotEmpty)
-            ?.also { logger.info("responseJson is $it") }
-            ?.let { mapper.readValue(it, JsonCallbackResponse::class.java) }
-            ?: NullCallbackResponse()
+                ?.also { logger.info("responseJson is $it") }
+                ?.let { mapper.readValue(it, JsonCallbackResponse::class.java) }
+                ?: NullCallbackResponse()
     }
 
     private fun pduToJson(pdu: DeliverSm): String {
-        val optionalParameters: HashMap<String, ByteArray> = hashMapOf()
-        pdu.optionalParameters?.forEach {
-            tlv -> optionalParameters.put(tlv.tagName, tlv.value)
-        }
         val mobileOriginated = MoData(
-                source_address = pdu.sourceAddress.address,
-                dest_address = pdu.destAddress.address,
-                service_type = pdu.serviceType,
-                short_message = CharsetUtil.decode(pdu.shortMessage, charset),
-                optional_parameters = optionalParameters
+                sourceAddress = pdu.sourceAddress.address,
+                destAddress = pdu.destAddress.address,
+                serviceType = pdu.serviceType,
+                shortMessage = CharsetUtil.decode(pdu.shortMessage, charset),
+                optionalParameters = pdu.optionalParameters.orEmpty().map { it.tagName to it.value }.toMap()
         )
-        val smData = SmData(smsc = smsc, mobile_originated = mobileOriginated)
+        val smData = SmData(smsc = smsc, mobileOriginated = mobileOriginated)
         return mapper.writeValueAsString(smData)
     }
 }

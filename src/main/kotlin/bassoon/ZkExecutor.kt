@@ -3,15 +3,16 @@ package bassoon
 import org.apache.zookeeper.*
 
 class ZkExecutor : Watcher, Executor {
-    private val connectionString: String = System.getenv("ZK_CONNECTION_STRING") ?: "localhost:2181"
-    private val zkEmptyData = byteArrayOf()
-    private val zk: ZooKeeper = ZooKeeper(connectionString, ZK_SESSION_TIMEOUT, this)
 
     companion object {
-        const val ZK_SESSION_TIMEOUT: Int = 5000
-        const val ZK_CLIENTS_PATH: String = "/automatic/bassoon/registry/clients"
-        const val ZK_NODE_NAME: String = "session"
+        private const val ZK_SESSION_TIMEOUT = 5000
+        private const val ZK_CLIENTS_PATH = "/automatic/bassoon/registry/clients"
+        private const val ZK_NODE_NAME = "session"
     }
+
+    private val connectionString = System.getenv("ZK_CONNECTION_STRING") ?: "localhost:2181"
+    private val zkEmptyData = byteArrayOf()
+    private val zk = ZooKeeper(connectionString, ZK_SESSION_TIMEOUT, this)
 
     init {
         createClientsPath()
@@ -20,7 +21,7 @@ class ZkExecutor : Watcher, Executor {
     override fun exists(name: String): Boolean {
         val clientPath = clientPath(name)
         val children = zk.getChildren(clientPath, false)
-        return children.any { mine("$clientPath/$it") }
+        return children.any { isMine("$clientPath/$it") }
     }
 
     override fun exceeded(name: String, allowed: Int): Boolean = zk.exists(clientPath(name), false)
@@ -42,7 +43,7 @@ class ZkExecutor : Watcher, Executor {
         val children = zk.getChildren(clientPath, false)
         return children
                 .map { "$clientPath/$it" }
-                .filter(this::mine)
+                .filter(this::isMine)
                 .forEach { zk.delete(it, -1) }
     }
 
@@ -52,14 +53,13 @@ class ZkExecutor : Watcher, Executor {
     private fun clientPath(name: String): String = ensureNodeExists("$ZK_CLIENTS_PATH/$name")
 
     private fun ensureNodeExists(path: String): String {
-        val stat = zk.exists(path, false)
-        if (stat == null) {
+        if (zk.exists(path, false) == null) {
             zk.create(path, zkEmptyData, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
         }
         return path
     }
 
-    private fun mine(path: String): Boolean = zk.exists(path, false)?.let { it.ephemeralOwner == zk.sessionId } ?: false
+    private fun isMine(path: String): Boolean = zk.exists(path, false)?.let { it.ephemeralOwner == zk.sessionId } ?: false
 
     override fun process(event: WatchedEvent?) {}
 }

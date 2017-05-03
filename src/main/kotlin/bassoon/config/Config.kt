@@ -1,25 +1,24 @@
 package bassoon.config
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import java.nio.file.FileSystems
 import java.nio.file.Files
 
 class Config {
-    private val mapper = ObjectMapper(YAMLFactory()).registerKotlinModule()
-    private val config: ConfigDto by lazy { loadFromFile() }
 
-    fun clients(): Array<ClientDto> = config.clients
+    private val mapper = ObjectMapper(YAMLFactory())
+            .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
+            .registerKotlinModule()
 
-    fun callback(): CallbackDto? = config.callback
-
-    private fun loadFromFile(): ConfigDto {
+    private val config by lazy {
         val configPath = System.getProperty("config")
         val path = FileSystems.getDefault().getPath(configPath)
-
-        return Files.newBufferedReader(path).use {
-            mapper.readValue(it, ConfigDto::class.java)
-        }
+        Files.newBufferedReader(path).use { mapper.readValue(it, ConfigDto::class.java) }
     }
+
+    val clients = config.clients
+    val callback = config.callback
 }
