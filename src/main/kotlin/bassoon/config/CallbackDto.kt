@@ -5,4 +5,5 @@ data class CallbackDto(
         val host: String,
         val port: Int,
         val path: String,
-        val headers: Map<String, String>)
+        val headers: Map<String, String>
+)

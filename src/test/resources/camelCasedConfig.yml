@@ -1,0 +1,15 @@
+clients:
+  -
+    name: pants
+    systemId: smppclient1
+    password: password
+    dataCoding: 0
+    charset: ISO-8859-1
+
+callback:
+  scheme: http
+  host: example.com
+  port: 3000
+  path: /automatic/basson/callback
+  headers:
+    x-take-me: home
