@@ -1,5 +1,3 @@
-group 'su.bohr'
-
 buildscript {
     ext.kotlin_version = '1.1.2-2'
     ext.jackson_version = '2.8.7'
