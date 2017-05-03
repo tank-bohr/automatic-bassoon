@@ -12,7 +12,8 @@ class HttpCallback(
         private val config: CallbackDto,
         private val smsc: String,
         private val charset: String,
-        private val httpClient: Call.Factory = OkHttpClient()) : Callback {
+        private val httpClient: Call.Factory = OkHttpClient()
+) : Callback {
 
     private val mapper = ObjectMapper()
             .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)

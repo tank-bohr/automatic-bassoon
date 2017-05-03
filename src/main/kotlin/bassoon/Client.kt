@@ -19,7 +19,8 @@ import java.util.*
 class Client(
         private val config: ClientDto,
         private val registry: ClientsRegistry? = null,
-        callbackConfig: CallbackDto? = null) : RegistrableClient {
+        callbackConfig: CallbackDto? = null
+) : RegistrableClient {
 
     companion object {
         const val BIND_TIMEOUT: Millis = 300_000
@@ -104,7 +105,8 @@ class Client(
             shortMessage: ByteArray,
             udhi: Boolean = false,
             pssr: Boolean = false,
-            useMessagePayload: Boolean = false): SubmitSmResp? {
+            useMessagePayload: Boolean = false
+    ): SubmitSmResp? {
         val sm = SubmitSm().also {
             it.sourceAddress = sourceAddress
             it.destAddress = destAddress
@@ -113,10 +115,17 @@ class Client(
                 it.registeredDelivery = SmppConstants.REGISTERED_DELIVERY_SMSC_RECEIPT_REQUESTED
                 it.esmClass = SmppConstants.ESM_CLASS_UDHI_MASK
             }
-            config.serviceType?.run { it.serviceType = this }
-            if (pssr) it.addOptionalParameter(pssrResponse)
-            if (useMessagePayload) it.addOptionalParameter(messagePayloadTlv(shortMessage))
-            else it.shortMessage = shortMessage
+            if (config.serviceType != null) {
+                it.serviceType = config.serviceType
+            }
+            if (pssr) {
+                it.addOptionalParameter(pssrResponse)
+            }
+            if (useMessagePayload) {
+                it.addOptionalParameter(messagePayloadTlv(shortMessage))
+            } else {
+                it.shortMessage = shortMessage
+            }
         }
         return session?.submit(sm, SUBMIT_TIMEOUT)
     }
