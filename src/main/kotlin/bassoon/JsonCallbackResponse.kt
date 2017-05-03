@@ -1,11 +1,8 @@
 package bassoon
 
-data class JsonCallbackResponse(val response_text: String?) : CallbackResponse {
-    override fun responseText(): String {
-        if ((response_text == null) || (response_text.isBlank())) {
-            return DEFAULT_RESPONSE_TEXT
-        } else {
-            return response_text.trim()
-        }
-    }
+import bassoon.CallbackResponse.Constants.DEFAULT_RESPONSE_TEXT
+
+data class JsonCallbackResponse(val responseText: String?) : CallbackResponse {
+
+    override fun responseText() = responseText?.takeIf(String::isNotBlank)?.trim() ?: DEFAULT_RESPONSE_TEXT
 }

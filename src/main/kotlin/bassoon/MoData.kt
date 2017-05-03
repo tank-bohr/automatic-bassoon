@@ -1,9 +1,8 @@
 package bassoon
 
 data class MoData(
-        val source_address: String,
-        val dest_address: String,
-        val service_type: String,
-        val short_message: String,
-        val optional_parameters: Map<String, ByteArray>
-)
+        val sourceAddress: String,
+        val destAddress: String,
+        val serviceType: String,
+        val shortMessage: String,
+        val optionalParameters: Map<String, ByteArray>)

@@ -7,23 +7,16 @@ import java.nio.file.FileSystems
 import java.nio.file.Files
 
 class Config {
-    private val mapper = ObjectMapper(YAMLFactory()).registerKotlinModule()
-    private val config: ConfigDto = loadFromFile()
 
-    fun clients(): Array<ClientDto> {
-        return config.clients
-    }
+    private val mapper = ObjectMapper(YAMLFactory())
+            .registerKotlinModule()
 
-    fun callback(): CallbackDto? {
-        return config.callback
-    }
-
-    private fun loadFromFile(): ConfigDto {
+    private val config by lazy {
         val configPath = System.getProperty("config")
         val path = FileSystems.getDefault().getPath(configPath)
-
-        return Files.newBufferedReader(path).use {
-            mapper.readValue(it, ConfigDto::class.java)
-        }
+        Files.newBufferedReader(path).use { mapper.readValue(it, ConfigDto::class.java) }
     }
+
+    val clients = config.clients
+    val callback = config.callback
 }

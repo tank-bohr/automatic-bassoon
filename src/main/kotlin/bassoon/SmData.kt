@@ -1,3 +1,3 @@
 package bassoon
 
-data class SmData(val mobile_originated: MoData, val smsc: String)
+data class SmData(val mobileOriginated: MoData, val smsc: String)
