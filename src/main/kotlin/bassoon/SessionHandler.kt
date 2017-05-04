@@ -20,18 +20,26 @@ class SessionHandler(
 
     override fun firePduRequestReceived(pduRequest: PduRequest<*>): PduResponse? = pduRequest.createResponse()
 
-    override fun firePduReceived(pdu: Pdu?): Boolean =
-            if (pdu is DeliverSm) {
-                logger.info("USSD received...")
-                val responseText = callback.run(pdu).responseText()
+    override fun firePduReceived(pdu: Pdu?): Boolean {
+        if (pdu is DeliverSm) {
+            logger.info("USSD received...")
+            val responseText = callback.run(pdu).responseText()
+
+            if (responseText != null) {
                 thread(
                         name = "${client.name}-async-ussd-response",
                         block = { client.respondUssd(pdu, responseText) }
                 )
-                false
+                // Прекращает обработку запроса. Дальнейшая обработка уходит в поток
+                return false
             } else {
-                true
+                return true
             }
+        } else {
+            return true
+        }
+
+    }
 
     override fun fireChannelUnexpectedlyClosed() {
         logger.warn("Unexpected channel closed. Cleanup...")
