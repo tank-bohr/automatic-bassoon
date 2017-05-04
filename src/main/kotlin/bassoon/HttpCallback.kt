@@ -60,8 +60,11 @@ class HttpCallback(
                 destAddress = pdu.destAddress.address,
                 serviceType = pdu.serviceType,
                 shortMessage = CharsetUtil.decode(pdu.shortMessage, charset),
-                optionalParameters = pdu.optionalParameters.orEmpty().map { it.tagName to it.value }.toMap()
-        )
+                optionalParameters = pdu.optionalParameters.orEmpty()
+                        .filter { it.tagName != null }
+                        .map { it.tagName to it.value }
+                        .toMap()
+        ).also { logger.debug("Send MO $it") }
         val smData = SmData(smsc = smsc, mobileOriginated = mobileOriginated)
         return mapper.writeValueAsString(smData)
     }

@@ -5,4 +5,4 @@ data class MoData(
         val destAddress: String,
         val serviceType: String,
         val shortMessage: String,
-        val optionalParameters: Map<String, ByteArray>)
+        val optionalParameters: Map<String, ByteArray?>)
