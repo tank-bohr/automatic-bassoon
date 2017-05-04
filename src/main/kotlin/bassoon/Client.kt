@@ -139,6 +139,9 @@ class Client(
                 it.systemId = config.systemId
                 it.password = config.password
                 it.bindTimeout = BIND_TIMEOUT
+                if (config.systemType != null) {
+                    it.systemType = config.systemType
+                }
             }
 
     private fun bind(): SmppSession = client.bind(sessionConfig, sessionHandler)
