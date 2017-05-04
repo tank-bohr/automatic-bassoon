@@ -89,7 +89,7 @@ class Client(
                 sourceAddress = deliverSm.destAddress,
                 destAddress = deliverSm.sourceAddress,
                 shortMessage = CharsetUtil.encode(responseText, config.charset),
-                pssr = isPssrIndication(deliverSm)
+                pssr = true
         ).also { logger.info("[fun respondUssd] Received response: [$it]") }
         session?.sendResponsePdu(deliverSm.createResponse())
     }
@@ -111,6 +111,7 @@ class Client(
             it.sourceAddress = sourceAddress
             it.destAddress = destAddress
             it.dataCoding = config.dataCoding
+            it.registeredDelivery = SmppConstants.REGISTERED_DELIVERY_SMSC_RECEIPT_NOT_REQUESTED
             if (udhi) {
                 it.registeredDelivery = SmppConstants.REGISTERED_DELIVERY_SMSC_RECEIPT_REQUESTED
                 it.esmClass = SmppConstants.ESM_CLASS_UDHI_MASK
@@ -145,10 +146,6 @@ class Client(
             }
 
     private fun bind(): SmppSession = client.bind(sessionConfig, sessionHandler)
-
-    private fun isPssrIndication(pdu: Pdu): Boolean =
-            pdu.getOptionalParameter(SmppConstants.TAG_USSD_SERVICE_OP)
-                    .let { 1.toByte() == it?.value?.get(0) }
 
     private fun referenceNumber(): Byte = byteArrayOf(0).also(random::nextBytes).first()
 
