@@ -55,7 +55,9 @@ class Client(
             }
 
 
-    override fun isConnected() = session != null
+    override fun isConnected(): Boolean {
+        return session?.isBound ?: false
+    }
 
     fun disconnect() {
         session?.unbind(UNBIND_TIMEOUT)

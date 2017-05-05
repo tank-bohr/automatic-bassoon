@@ -27,10 +27,9 @@ class HttpCallbackSpec : Spek({
             it("responses with `response_text`") {
                 val callback = HttpCallback(
                         config = CallbackDto(url),
-                        smsc = "pants",
-                        charset = "ISO-8859-1"
+                        smsc = "pants"
                 )
-                val response = callback.run(DeliverSm().also {
+                val response = callback.run(pdu = DeliverSm().also {
                     it.destAddress = Address(SmppConstants.TON_ALPHANUMERIC, SmppConstants.NPI_UNKNOWN, "1111")
                     it.sourceAddress = Address(SmppConstants.TON_INTERNATIONAL, SmppConstants.NPI_UNKNOWN, "1111")
                     it.shortMessage = CharsetUtil.encode("Take me home", "ISO-8859-1")

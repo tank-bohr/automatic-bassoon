@@ -11,7 +11,6 @@ import okhttp3.*
 class HttpCallback(
         private val config: CallbackDto,
         private val smsc: String,
-        private val charset: String,
         private val httpClient: Call.Factory = OkHttpClient()
 ) : Callback {
 
@@ -25,8 +24,8 @@ class HttpCallback(
         val JSON: MediaType = MediaType.parse("application/json; charset=utf-8")
     }
 
-    override fun run(pdu: DeliverSm): CallbackResponse {
-        val body = RequestBody.create(JSON, pduToJson(pdu))
+    override fun run(pdu: DeliverSm, charset: String): CallbackResponse {
+        val body = RequestBody.create(JSON, pduToJson(pdu, charset))
 
         val url = HttpUrl.Builder()
                 .scheme(config.scheme)
@@ -54,7 +53,7 @@ class HttpCallback(
                 ?: NullCallbackResponse()
     }
 
-    private fun pduToJson(pdu: DeliverSm): String {
+    private fun pduToJson(pdu: DeliverSm, charset: String): String {
         val mobileOriginated = MoData(
                 sourceAddress = pdu.sourceAddress.address,
                 destAddress = pdu.destAddress.address,
