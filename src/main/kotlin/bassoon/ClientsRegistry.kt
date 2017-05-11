@@ -22,8 +22,13 @@ class ClientsRegistry(private val executor: Executor) {
         val name = client.name
         val allowedConnections = client.allowedConnections
         when {
-            executor.exists(name) -> logger.debug("Client $name is already connected")
-            executor.exceeded(name, allowedConnections) -> logger.debug("Allowed connections number exceeded")
+            executor.exists(name) -> {
+                logger.debug("Client $name is already connected")
+                ensureConnected(client)
+            }
+            executor.exceeded(name, allowedConnections) -> {
+                logger.debug("Allowed connections number exceeded")
+            }
             else -> {
                 logger.debug("Register and connect [$name]...")
                 registerAndConnect(client)
@@ -40,6 +45,13 @@ class ClientsRegistry(private val executor: Executor) {
             if (!connected) {
                 executor.unregister(registered)
             }
+        }
+    }
+
+    private fun ensureConnected(client: RegistrableClient) {
+        val connected = client.connect()
+        if (!connected) {
+            logger.error("Client [${client.name}] not connected")
         }
     }
 }
