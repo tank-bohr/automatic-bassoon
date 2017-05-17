@@ -7,11 +7,11 @@ class MockExecutor(val exists: Boolean = false, val exceeded: Boolean = false) :
     private val registered: MutableList<String> = mutableListOf()
 
 
-    override fun exists(name: String): Boolean {
+    override fun isSessionExists(name: String): Boolean {
         return exists
     }
 
-    override fun exceeded(name: String, allowed: Int): Boolean {
+    override fun isSessionsNotLessThan(name: String, allowed: Int): Boolean {
         return exceeded
     }
 

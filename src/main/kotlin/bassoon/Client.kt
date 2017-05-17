@@ -59,7 +59,7 @@ class Client(
         return session?.isBound ?: false
     }
 
-    fun disconnect() {
+    override fun disconnect() {
         session?.unbind(UNBIND_TIMEOUT)
         cleanup()
     }

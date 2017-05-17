@@ -1,10 +1,14 @@
 package bassoon
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import spark.Request
 import spark.Response
 import spark.Spark.*
 
 class WebApp(private val registry: ClientsRegistry) {
+
+    private val mapper: ObjectMapper = ObjectMapper().registerKotlinModule()
 
     fun run() {
         val httpPort = System.getenv("HTTP_PORT")?.toInt() ?: 8080
@@ -12,6 +16,7 @@ class WebApp(private val registry: ClientsRegistry) {
 
         // Routes
         get("/") { _, _ -> "OK" }
+        get("/health", this::health)
         post("/send_sms/:name", this::sendSms)
     }
 
@@ -32,5 +37,15 @@ class WebApp(private val registry: ClientsRegistry) {
                 }
             }
         }
+    }
+
+    private fun health(request: Request, response: Response): String {
+        val check = registry.healthCheck()
+        val ok = check.values.all { it }
+        if (!ok) {
+            response.status(503)
+        }
+        response.header("content-type", "application/json")
+        return mapper.writeValueAsString(check)
     }
 }

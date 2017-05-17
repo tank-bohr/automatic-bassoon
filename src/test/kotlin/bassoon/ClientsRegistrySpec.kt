@@ -44,7 +44,7 @@ class ClientsRegistrySpec : Spek({
             }
         }
 
-        context("when exceeded allowed connections") {
+        context("when isSessionsNotLessThan allowed connections") {
             it("doesn't register") {
                 val executor = MockExecutor(exceeded = true)
                 val registry = ClientsRegistry(executor)
@@ -67,6 +67,20 @@ class ClientsRegistrySpec : Spek({
 
                 assertEquals(true, executor.wasRegistered(defaultClient.name))
                 assertEquals(true, client.isConnected())
+            }
+        }
+    }
+
+    describe("healthCheck") {
+        context("when client is connected") {
+            it("returns a map with checks") {
+                val executor = MockExecutor(exists = true, exceeded = true)
+                val registry = ClientsRegistry(executor)
+                val client = MockClient().also { it.connect() }
+                registry.add(client)
+
+                val checks = registry.healthCheck()
+                assertEquals(true, checks[defaultClient.name])
             }
         }
     }
