@@ -18,13 +18,13 @@ class ZkExecutor : Watcher, Executor {
         createClientsPath()
     }
 
-    override fun exists(name: String): Boolean {
+    override fun isSessionExists(name: String): Boolean {
         val clientPath = clientPath(name)
         val children = zk.getChildren(clientPath, false)
         return children.any { isMine("$clientPath/$it") }
     }
 
-    override fun exceeded(name: String, allowed: Int): Boolean = zk.exists(clientPath(name), false)
+    override fun isSessionsNotLessThan(name: String, allowed: Int): Boolean = zk.exists(clientPath(name), false)
             ?.let { it.numChildren >= allowed }
             ?: false
 
