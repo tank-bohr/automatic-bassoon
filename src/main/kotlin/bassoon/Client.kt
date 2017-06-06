@@ -6,10 +6,7 @@ import com.cloudhopper.commons.charset.CharsetUtil
 import com.cloudhopper.commons.gsm.GsmUtil
 import com.cloudhopper.smpp.*
 import com.cloudhopper.smpp.impl.DefaultSmppClient
-import com.cloudhopper.smpp.pdu.DeliverSm
-import com.cloudhopper.smpp.pdu.Pdu
-import com.cloudhopper.smpp.pdu.SubmitSm
-import com.cloudhopper.smpp.pdu.SubmitSmResp
+import com.cloudhopper.smpp.pdu.*
 import com.cloudhopper.smpp.tlv.Tlv
 import com.cloudhopper.smpp.type.Address
 import com.cloudhopper.smpp.type.SmppBindException
@@ -26,6 +23,7 @@ class Client(
         const val BIND_TIMEOUT: Millis = 300_000
         const val UNBIND_TIMEOUT: Millis = 300_000
         const val SUBMIT_TIMEOUT: Millis = 300_000
+        const val ENQUIRE_LINK_TIMEOUT: Millis = 300_000
     }
 
     override val name: String = config.name
@@ -62,6 +60,10 @@ class Client(
     override fun disconnect() {
         session?.unbind(UNBIND_TIMEOUT)
         cleanup()
+    }
+
+    override fun check(): Boolean {
+        return connect() && (enquireLink() != null)
     }
 
     fun cleanup() {
@@ -131,6 +133,11 @@ class Client(
             }
         }
         return session?.submit(sm, SUBMIT_TIMEOUT)
+    }
+
+
+    private fun enquireLink(): EnquireLinkResp? {
+        return session?.enquireLink(EnquireLink(), ENQUIRE_LINK_TIMEOUT)
     }
 
     private fun buildSessionConfiguration(): SmppSessionConfiguration =

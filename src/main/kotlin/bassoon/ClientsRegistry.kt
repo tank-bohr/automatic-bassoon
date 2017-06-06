@@ -59,8 +59,7 @@ class ClientsRegistry(private val executor: Executor) {
     }
 
     private fun ensureConnected(client: RegistrableClient) {
-        val connected = client.connect()
-        if (!connected) {
+        if (!client.check()) {
             logger.error("Client [${client.name}] is not connected")
         }
     }

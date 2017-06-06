@@ -19,6 +19,8 @@ class MockClient(
         }
     }
 
+    override fun check(): Boolean = true
+
     override fun disconnect() {}
 
     override fun isConnected(): Boolean = isConnected

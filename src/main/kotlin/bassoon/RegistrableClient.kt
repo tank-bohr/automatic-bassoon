@@ -5,5 +5,6 @@ interface RegistrableClient {
     val allowedConnections: Int
     fun connect(): Boolean
     fun disconnect()
+    fun check(): Boolean
     fun isConnected(): Boolean
 }
